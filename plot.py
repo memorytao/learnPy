@@ -12,10 +12,11 @@ values = df['value']
 listOfCDR = cdr.unique().tolist()
 listOfDatas = list(zip(hrs, cdr, values))
 maxOfEachHrs = dict.fromkeys(hrs, 0)
+sumOfEachHrs = {}
 
 for hour in maxOfEachHrs.keys():
-    
     maxOfEachCDR = dict.fromkeys(listOfCDR, 0)
+
     for cdr in maxOfEachCDR.keys():
         findMax = 0
         for colHrs,colCDR,colVal in listOfDatas:
@@ -26,12 +27,14 @@ for hour in maxOfEachHrs.keys():
             if (cdr == colCDR and hour == colHrs and colVal > findMax ):
                 findMax = colVal
                 maxOfEachCDR[cdr] = findMax
-                
+
+    sumOfEachHrs[hour] = maxOfEachCDR    
+# print(sumOfEachHrs,end="\n")        
     # Create the line plot
-    print(maxOfEachCDR)
-    # plt.bar(maxOfEachCDR.keys(), maxOfEachCDR.values())
-    # plt.xlabel('CDR')
-    # plt.ylabel('value')
-    # plt.title('Source By '+ str(hour))
-    # plt.figure(hour)
-    # plt.show()
+    plt.subplots(figsize=(12, 6))
+    plt.bar(maxOfEachCDR.keys(), maxOfEachCDR.values())
+    plt.xlabel('CDR')
+    plt.ylabel('value')
+    plt.title('Source By Hour at '+ str(hour))
+    plt.subplots_adjust(left=0.25, right=0.75, bottom=0.25, top=0.75)
+    plt.show()
