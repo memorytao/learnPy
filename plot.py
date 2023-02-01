@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 # /content/Train_WD_2.csv
-df = pd.read_csv('D:\code\py\Train_WD_2.csv')
+df = pd.read_csv('Train_WD_2.csv')
 
 hrs = df['Hour']
 cdr = df['CDR']
