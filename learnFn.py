@@ -1,18 +1,10 @@
-
-# def foo(firstName,nickName):
-#     print(f"Firstname is {firstName} , Nickname is {nickName}")
+import numpy as np
 
 
-# firstName = input(" Enter your firstname: ")
-# nickname = input("Enter your nickname: ")
+x = np.array([])
+
+x = [[0,  1,  2],
+     [3,  4,  5]]
 
 
-# foo(firstName)
-
-
-def create_customer(first_name, last_name, age, is_new_customer=True):
-    print(first_name,last_name,age,is_new_customer)
-
-
-
-create_customer('David', 'Berry', 25)
+x = x + [25, 25]

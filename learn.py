@@ -1,6 +1,7 @@
-from random import randint
-from sqlite3 import enable_shared_cache
-from this import d
+import requests
+
+data = requests.get('https://restcountries.com/v3.1/all')
 
 
-print('Hi')
+
+print(data)
