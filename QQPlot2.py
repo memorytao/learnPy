@@ -19,4 +19,8 @@ for c in CDR.unique():
             continue
         stats.probplot(cdr_hour_data, dist="norm", plot=ax)
         plt.title(c + ' at Hour ' + str(int(hour)))
+<<<<<<< HEAD
         plt.show()
+=======
+        plt.show()
+>>>>>>> master

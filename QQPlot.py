@@ -22,4 +22,8 @@ for c in CDR.unique():
 
     fig = sm.qqplot(np.array(cdr_data), stats.norm, fit=True, line="45")
     plt.title('Data via CDR : '+c)
+<<<<<<< HEAD
     plt.show()
+=======
+    plt.show()
+>>>>>>> master
