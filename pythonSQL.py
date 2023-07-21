@@ -28,5 +28,8 @@ with engine.connect() as conn:
         # Create a Pandas DataFrame from the results of the SQL query
         df = pd.DataFrame(result)
 
+        # Replace None with "Unknown" in all columns
+        df.replace(to_replace=None, value='Unknown', inplace=True)
+
         # Print the first names of all the customers
         print(df.to_string(index=False))
