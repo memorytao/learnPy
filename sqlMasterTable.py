@@ -14,7 +14,7 @@ TABLES = {
     "DIM_PROD": -1,
     "DIM_PROD_5G": -1,
     "DIM_PROD_EXT": -1,
-    "DIM_RC_RATE": -1,
+    # "DIM_RC_RATE": -1,
     "DIM_TOL_PROMOTION": -1,
     "DIM_TRUEID": -2,
     "Employee": -1,
@@ -35,8 +35,7 @@ CMPGN_MASTER_COLUMNS = ['Schema_Name', 'Table_Name', 'Table_Description', 'Table
 
 # Create a connection to the database
 # DRIVER_URL = "sqlite:///C:/Users/Tao/AppData/Roaming/DBeaverData/workspace6/.metadata/sample-database-sqlite-1/Chinook.db"
-DRIVER_URL = "sqlite:///C:/Users/Tao/AppData/Roaming/DBeaverData/workspace6/.metadata/sample-database-sqlite-1/Chinook.db"
-
+DRIVER_URL = "sqlite:////Users/memorytao/Library/DBeaverData/workspace6/.metadata/sample-database-sqlite-1/Chinook.db"
 engine = db.create_engine(DRIVER_URL)
 currentTime = datetime.now()
 
