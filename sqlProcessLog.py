@@ -34,6 +34,7 @@ CMPGN_MASTER_PROCESS_LOG_COLUMNS = ['Day_ID', 'Round', 'Schema_Name',
                                     'Table_Name', 'Latest_Date', 'Data_Amount', 'Status', 'Create_DTTM']
 
 # Create a connection to the database
+# DRIVER_URL = "sqlite:///C:/Users/Tao/AppData/Roaming/DBeaverData/workspace6/.metadata/sample-database-sqlite-1/Chinook.db"
 DRIVER_URL = "sqlite:///C:/Users/Tao/AppData/Roaming/DBeaverData/workspace6/.metadata/sample-database-sqlite-1/Chinook.db"
 engine = db.create_engine(DRIVER_URL)
 currentTime = datetime.now()

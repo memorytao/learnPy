@@ -33,11 +33,10 @@ TABLES = {
 CMPGN_MASTER_COLUMNS = ['Schema_Name', 'Table_Name', 'Table_Description', 'Table_Short_Description ', 'SLA_Data', 'SLA_Time',
                         'Min_Data_Threshold', 'Max_Data_Threshold', 'Check_Field_Name_1', 'Check_Field_Name_2', 'Update_DTTM', 'Update_By']
 
-CMPGN_MASTER_PROCESS_LOG_COLUMNS = ['Day_ID', 'Round', 'Schema_Name',
-                                    'Table_Name', 'Latest_Date', 'Data_Amount', 'Status', 'Create_DTTM']
-
 # Create a connection to the database
+# DRIVER_URL = "sqlite:///C:/Users/Tao/AppData/Roaming/DBeaverData/workspace6/.metadata/sample-database-sqlite-1/Chinook.db"
 DRIVER_URL = "sqlite:///C:/Users/Tao/AppData/Roaming/DBeaverData/workspace6/.metadata/sample-database-sqlite-1/Chinook.db"
+
 engine = db.create_engine(DRIVER_URL)
 currentTime = datetime.now()
 
@@ -55,4 +54,4 @@ with engine.connect() as conn:
         # Replace None with "Unknown" in all columns
         df.replace(to_replace='None', value='Unknown', inplace=True)
         # Print the first names of all the customers
-        df.to_excel('../{}.xlsx'.format(table), index=False)
+        df.to_excel('./{}.xlsx'.format(table), index=False)
