@@ -55,7 +55,4 @@ with engine.connect() as conn:
         # Replace None with "Unknown" in all columns
         df.replace(to_replace='None', value='Unknown', inplace=True)
         # Print the first names of all the customers
-        df.to_excel('./{}.xlsx'.format(table), index=False)
-
-
-
+        df.to_excel('../{}.xlsx'.format(table), index=False)

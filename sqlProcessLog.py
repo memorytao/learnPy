@@ -30,9 +30,6 @@ TABLES = {
     "FCT_VAS_CONTENT_NMODEL": -2
 }
 
-CMPGN_MASTER_COLUMNS = ['Schema_Name', 'Table_Name', 'Table_Description', 'Table_Short_Description ', 'SLA_Data', 'SLA_Time',
-                        'Min_Data_Threshold', 'Max_Data_Threshold', 'Check_Field_Name_1', 'Check_Field_Name_2', 'Update_DTTM', 'Update_By']
-
 CMPGN_MASTER_PROCESS_LOG_COLUMNS = ['Day_ID', 'Round', 'Schema_Name',
                                     'Table_Name', 'Latest_Date', 'Data_Amount', 'Status', 'Create_DTTM']
 
@@ -56,6 +53,3 @@ with engine.connect() as conn:
         df.replace(to_replace='None', value='Unknown', inplace=True)
         # Print the first names of all the customers
         df.to_excel('./{}.xlsx'.format(table), index=False)
-
-
-
