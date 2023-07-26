@@ -107,7 +107,7 @@ data_to_process_log_table.to_sql(name=INSERT_TABLE, con=engine, index=False, if_
 
 # Save data to a CSV file
 data_to_process_log_table.to_csv('./{}_{}_{}.csv'.format(INSERT_TABLE, datetime.now().strftime(DATE_FORMAT), round_job),
-                                 index=False, sep="|")
+                                 index=False, sep="|",header=None)
 
 # Commented out section. Check if it's required, otherwise it can be removed.
 # isDir = os.path.isdir(path)
