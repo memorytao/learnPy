@@ -102,8 +102,8 @@ data_to_process_log_table.to_sql(name=INSERT_TABLE, con=engine, index=False, if_
 
 data_to_process_log_table.to_csv('./{}_{}_{}.csv'.format(INSERT_TABLE,datetime.now().strftime(DATE_FORMAT),round_job),index=False,sep="|")
 
-isDir = os.path.isdir(path)
-if(not isDir):
-   os.mkdir(path)
+# isDir = os.path.isdir(path)
+# if(not isDir):
+#    os.mkdir(path)
 
 sys.exit(0)
