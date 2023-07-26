@@ -3,126 +3,107 @@ import pandas as pd
 from datetime import datetime
 from datetime import timedelta
 import sys
+import os 
 
 
-# Create a connection to the database
-DRIVER_URL = "sqlite:///C:/Users/Tao/AppData/Roaming/DBeaverData/workspace6/.metadata/sample-database-sqlite-1/Chinook.db"
-# DRIVER_URL = "sqlite:////Users/memorytao/Library/DBeaverData/workspace6/.metadata/sample-database-sqlite-1/Chinook.db"
-engine = db.create_engine(DRIVER_URL)
+DATE_FORMAT = "%Y%m%d"
+round_job = sys.argv[1]
 
-
-
-
-TABLES = {
-    # "CVM_HOUSE_HOLD_IDCARD_ADDR": -1,
-    "DIM_ACCT": -1,
-    "DIM_CELLSITE_LOCATION": -1,
-    "DIM_CUST": -1,
-    "DIM_HANDSETS": -1,
-    "DIM_ORDR_ACTVTN": -1,
-    "DIM_PRICE_PLAN_MV": -1,
-    "DIM_PROD": -1,
-    "DIM_PROD_5G": -1,
-    "DIM_PROD_EXT": -1,
-    "DIM_RC_RATE": -1,
-    "DIM_TOL_PROMOTION": -1,
-    "DIM_TRUEID": -2,
-    "FCT_CHRG": -1,
-    # "FCT_INVC": -1,
-    # "FCT_INVC_PROD": -1,
-    "FCT_POST_CHARGE": -1,
-    "FCT_PREP_SUBS_ACTIVATE": -1,
-    "FCT_PYMT": -1,
-    # "FCT_SUBS_SERVICE_NMODEL": -1,
-    "FCT_TOPUP": -2,
-    "FCT_TRUEID_UNLCK": -2,
-    # "FCT_VAS_CONTENT_NMODEL": -2
-}
-
-DAY_ID = []
-ROUND = []
-SCHEMA_NAME = []
-TABLE_NAME = []
-LATEST_DATE = []
-DATA_AMOUNT = []
-STATUS = []
-CREATE_DTTM = []
-
-currentTime = datetime.now()
-currTimeStr = currentTime.strftime("%Y-%m-%d %H:%M:%S")
+DAY_ID_DATA = []
+ROUND_DATA = []
+SCHEMA_NAME_DATA = []
+TABLE_NAME_DATA = []
+LATEST_DATE_DATA = []
+DATA_AMOUNT_DATA = []
+STATUS_DATA = []
+CREATE_DTTM_DATA = []
 
 INSERT_TABLE = "CVM_CMPGN_MASTER_PROCESS_LOG"
-COUNT_SQL = " SELECT COUNT(1) FROM {} WHERE LOADDATE = '{}'"
-# SQL_CVM_CMPGN_MASTER_TABLE = 'SELECT * FROM CVM_CMPGN_MASTER_TABLE ccmt'
-SQL_STATUS = " SELECT * FROM CVM_CMPGN_MASTER_TABLE ccmt WHERE {} >= MIN_DATA_THRESHOLD  AND {} <= MAX_DATA_THRESHOLD ; "
+# Create a connection to the database
+DRIVER_URL = "netezza+nzpy://T968672:sa4+VdllVLi$UkV@10.50.78.21:5480/NZDATAMART"
 
-for table in TABLES:
-    timeBefore = currentTime + timedelta(days=TABLES[table])
-    # print(COUNT_SQL.format(table,timeBefore.strftime("%Y-%m-%d")))
+engine = db.create_engine(DRIVER_URL)
+SQL_CVM_CMPGN_MASTER_TABLE = """SELECT SCHEMA_NAME,TABLE_NAME,TABLE_DESCRIPTION,TABLE_SHORT_DESCRIPTION,TABLE_CATEGORY,SLA_DATA,SLA_TIME,MIN_DATA_THRESHOLD,MAX_DATA_THRESHOLD,CHECK_FIELD_NAME_1,DATA_TYPE,CHECK_FIELD_NAME_2,CHECK_FIELD_NAME_3,CHECK_FIELD_NAME_4,UPDATE_DTTM,UPDATE_BY FROM CVM_CMPGN_MASTER_TABLE 
+"""
 
-    with engine.connect() as conn:
-        # query = db.text(COUNT_SQL.format(table,currTimeStr))
-        query = db.text(COUNT_SQL.format(table,'20230702'))
-        print(COUNT_SQL.format(table,'20230702'))
-        count = conn.execute(query)
-        countAllTables = pd.DataFrame(count)
-
-        numbers = countAllTables.values[0][0]
-        # print(" number of xxxx ",numbers)
-        for data_count in countAllTables:
-            print(SQL_STATUS.format(numbers,numbers))
+# SQL_CVM_CMPGN_MASTER_TABLE += " LIMIT 3"
 
 
-# Query the data
-    # with engine.connect() as conn:
+with engine.connect() as conn:
+    cvm_campaign_from_sql = conn.execute(db.text(SQL_CVM_CMPGN_MASTER_TABLE))
+    cvm_master_data = pd.DataFrame(cvm_campaign_from_sql,
+                                   columns=[
+                                       "SCHEMA_NAME","TABLE_NAME","TABLE_DESCRIPTION","TABLE_SHORT_DESCRIPTION","TABLE_CATEGORY","SLA_DATA","SLA_TIME","MIN_DATA_THRESHOLD","MAX_DATA_THRESHOLD","CHECK_FIELD_NAME_1","DATA_TYPE","CHECK_FIELD_NAME_2","CHECK_FIELD_NAME_3","CHECK_FIELD_NAME_4","UPDATE_DTTM","UPDATE_BY"
+                                       ]
+                                   )
+    
+    for idx,master in cvm_master_data.iterrows():
+        TABLE_CATEGORY = master['TABLE_CATEGORY']
+        DATA_TYPE = master['DATA_TYPE']
+        CHECK_FIELD_NAME_1 = master['CHECK_FIELD_NAME_1']
+        TABLE_NAME = master['TABLE_NAME']
+        MAX_DATA_THRESHOLD = master['MAX_DATA_THRESHOLD']
+        MIN_DATA_THRESHOLD = master['MIN_DATA_THRESHOLD']
+        SCHEMA_NAME = master['SCHEMA_NAME']
 
-    #     query = db.text(SQL)
-    #     result = conn.execute(query)
-    #     # Create a Pandas DataFrame from the results of the SQL query
-    #     df = pd.DataFrame(result)
+        if TABLE_NAME == 'FCT_INVC_PROD': 
+            #  AS_OF_
+            continue
 
-    #     # Replace None with "Unknown" in all columns
-    #     df.replace(to_replace='None', value='', inplace=True)
+        SQL_CHECK_LATEST = """ SELECT to_char(MAX(DATE({})),'YYYYMMDD') AS LOADDATE FROM {} ; """
 
-    #     for i, row in df.iterrows():
-    #         schema_name = df['SCHEMA_NAME']
-    #         table_name = df['TABLE_NAME']
-    #         table_description = df['TABLE_DESCRIPTION']
-    #         table_short_description = df['TABLE_SHORT_DESCRIPTION']
-    #         sla_data = df['SLA_DATA']
-    #         sla_time = df['SLA_TIME']
-    #         min_data_threshold = df['MIN_DATA_THRESHOLD']
-    #         max_data_threshold = df['MAX_DATA_THRESHOLD']
-    #         check_field_name_1 = df['CHECK_FIELD_NAME_1']
-    #         check_field_name_2 = df['CHECK_FIELD_NAME_2']
-    #         check_field_name_3 = df['CHECK_FIELD_NAME_3']
-    #         check_field_name_4 = df['CHECK_FIELD_NAME_4']
-    #         update_dttm = df['UPDATE_DTTM']
-    #         update_by = df['UPDATE_BY']
+        db_latest_time = conn.execute(db.text(SQL_CHECK_LATEST.format(CHECK_FIELD_NAME_1,TABLE_NAME)))
+        latest_date = db_latest_time.fetchall()[0][0]
+        currentTime = datetime.strptime(datetime.now().strftime(DATE_FORMAT),DATE_FORMAT)
+        latest_update_date = datetime.strptime(latest_date, DATE_FORMAT)
 
-    # SCHEMA_NAME.append(row['SCHEMA_NAME'])
-    # TABLE_NAME.append(row['TABLE_NAME'])
-    # DAY_ID.append(df['CHECK_FIELD_NAME_1'])
-    # ROUND.append(ROUND_AT_DAY)
-    # LATEST_DATE.append(ROUND_AT_DAY)
-    # DATA_AMOUNT.append('')
-    # STATUS.append('')
-    # CREATE_DTTM.append(currTimeStr)
+        SQL_COUNT_AMOUNT = """SELECT COUNT(1) FROM {} """.format(TABLE_NAME)
+
+        if TABLE_CATEGORY == 'TRANSACTION':
+            SQL_COUNT_AMOUNT += "WHERE to_char(DATE({}),'YYYYMMDD') = '{}' ".format(CHECK_FIELD_NAME_1,latest_update_date.strftime(DATE_FORMAT))
+
+        max_sub = int(MAX_DATA_THRESHOLD)
+        min_sub = int(MIN_DATA_THRESHOLD)
+
+        db_amount = conn.execute(db.text(SQL_COUNT_AMOUNT))
+
+        amount_sub = int(db_amount.fetchall()[0][0])
+
+        status = "Normal" if (currentTime == latest_update_date and ( amount_sub >= min_sub and amount_sub <= max_sub ) ) else "Delay" if (currentTime > latest_update_date) else "AbNormal"
+
+        print('latest',latest_date, 'check latest ',SQL_CHECK_LATEST.format(CHECK_FIELD_NAME_1,TABLE_NAME))
+        print('amt ' ,SQL_COUNT_AMOUNT,'amount:' ,amount_sub)
+        print('table cate',TABLE_CATEGORY, 'table ',TABLE_NAME,'max:' , max_sub , 'min:' ,min_sub , 'status:',status)
+
+        DAY_ID_DATA.append(currentTime.strftime(DATE_FORMAT))
+        ROUND_DATA.append(round_job)
+        SCHEMA_NAME_DATA.append(SCHEMA_NAME)
+        TABLE_NAME_DATA.append(TABLE_NAME)
+        LATEST_DATE_DATA.append(latest_date)
+        DATA_AMOUNT_DATA.append(amount_sub)
+        STATUS_DATA.append(status)
+        CREATE_DTTM_DATA.append(datetime.now())
 
 
 # INSERT ZONE
+data_to_process_log_table = pd.DataFrame(
+    {
+        'DAY_ID': DAY_ID_DATA,
+        'ROUND': ROUND_DATA,
+        'SCHEMA_NAME': SCHEMA_NAME_DATA,
+        'TABLE_NAME': TABLE_NAME_DATA,
+        'LATEST_DATE': LATEST_DATE_DATA,
+        'DATA_AMOUNT': DATA_AMOUNT_DATA,
+        'STATUS': STATUS_DATA,
+        'CREATE_DTTM': CREATE_DTTM_DATA,
+    }
+)
+data_to_process_log_table.to_sql(name=INSERT_TABLE, con=engine, index=False, if_exists='replace')
 
-# data_to_process_log_table = pd.DataFrame(
-#     {
-#         # 'DAY_ID': DAY_ID,
-#         # 'ROUND': ROUND,
-#         'SCHEMA_NAME': SCHEMA_NAME,
-#         'TABLE_NAME': TABLE_NAME,
-#         # 'LATEST_DATE': LATEST_DATE,
-#         # 'DATA_AMOUNT': DATA_AMOUNT,
-#         # 'STATUS': STATUS,
-#         # 'CREATE_DTTM': CREATE_DTTM,
-#     }
-# )
+data_to_process_log_table.to_csv('./{}_{}_{}.csv'.format(INSERT_TABLE,datetime.now().strftime(DATE_FORMAT),round_job),index=False,sep="|")
 
-# data_to_process_log_table.to_sql(name=INSERT_TABLE, con=engine, index=False, if_exists='append')
+isDir = os.path.isdir(path)
+if(not isDir):
+   os.mkdir(path)
+
+sys.exit(0)
