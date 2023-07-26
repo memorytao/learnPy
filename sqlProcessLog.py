@@ -4,6 +4,7 @@ from datetime import datetime
 from datetime import timedelta
 import sys
 import os 
+import subprocess
 
 
 DATE_FORMAT = "%Y%m%d"
@@ -98,7 +99,7 @@ data_to_process_log_table = pd.DataFrame(
         'CREATE_DTTM': CREATE_DTTM_DATA,
     }
 )
-data_to_process_log_table.to_sql(name=INSERT_TABLE, con=engine, index=False, if_exists='replace')
+data_to_process_log_table.to_sql(name=INSERT_TABLE, con=engine, index=False, if_exists='append')
 
 data_to_process_log_table.to_csv('./{}_{}_{}.csv'.format(INSERT_TABLE,datetime.now().strftime(DATE_FORMAT),round_job),index=False,sep="|")
 
