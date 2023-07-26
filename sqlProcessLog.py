@@ -2,7 +2,11 @@ import sqlalchemy as db
 import pandas as pd
 from datetime import datetime
 import sys
+import os
 
+
+CSV_PATH = ""
+TMP_PATH = ""
 DATE_FORMAT = "%Y%m%d"
 round_job = sys.argv[1]
 
@@ -26,7 +30,7 @@ SQL_CVM_CMPGN_MASTER_TABLE = """
     SELECT SCHEMA_NAME, TABLE_NAME, TABLE_DESCRIPTION, TABLE_SHORT_DESCRIPTION, TABLE_CATEGORY, SLA_DATA, SLA_TIME,
            MIN_DATA_THRESHOLD, MAX_DATA_THRESHOLD, CHECK_FIELD_NAME_1, DATA_TYPE, CHECK_FIELD_NAME_2, 
            CHECK_FIELD_NAME_3, CHECK_FIELD_NAME_4, UPDATE_DTTM, UPDATE_BY
-    FROM CVM_CMPGN_MASTER_TABLE
+    FROM CVM_CMPGN_MASTER_TABLE 
 """
 
 with engine.connect() as conn:
@@ -49,15 +53,17 @@ with engine.connect() as conn:
         MIN_DATA_THRESHOLD = master['MIN_DATA_THRESHOLD']
         SCHEMA_NAME = master['SCHEMA_NAME']
 
-        if TABLE_NAME == 'FCT_INVC_PROD':
-            # Skip the FCT_INVC_PROD table
-            continue
+        # if TABLE_NAME == 'FCT_INVC_PROD':
+        #     # Skip the FCT_INVC_PROD table
+        #     continue
 
         # SQL to get the latest date from the table
         SQL_CHECK_LATEST = """SELECT to_char(MAX(DATE({})),'YYYYMMDD') AS LOADDATE FROM {} ;"""
-        db_latest_time = conn.execute(db.text(SQL_CHECK_LATEST.format(CHECK_FIELD_NAME_1, TABLE_NAME)))
+        db_latest_time = conn.execute(
+            db.text(SQL_CHECK_LATEST.format(CHECK_FIELD_NAME_1, TABLE_NAME)))
         latest_date = db_latest_time.fetchall()[0][0]
-        currentTime = datetime.strptime(datetime.now().strftime(DATE_FORMAT), DATE_FORMAT)
+        currentTime = datetime.strptime(
+            datetime.now().strftime(DATE_FORMAT), DATE_FORMAT)
         latest_update_date = datetime.strptime(latest_date, DATE_FORMAT)
 
         SQL_COUNT_AMOUNT = """SELECT COUNT(1) FROM {} """.format(TABLE_NAME)
@@ -73,12 +79,19 @@ with engine.connect() as conn:
         amount_sub = int(db_amount.fetchall()[0][0])
 
         # Determine the status based on the current date and the latest update date
-        status = "Normal" if (currentTime == latest_update_date and (amount_sub >= min_sub and amount_sub <= max_sub)) \
-            else "Delay" if (currentTime > latest_update_date) else "AbNormal"
+        status = ""
+        if (currentTime == latest_update_date and (amount_sub >= min_sub and amount_sub <= max_sub)):
+            status = "Normal"
+        elif (currentTime > latest_update_date):
+            status = "Delay"
+        else:
+            status = "AbNormal"
 
-        print('latest:', latest_date, 'check latest:', SQL_CHECK_LATEST.format(CHECK_FIELD_NAME_1, TABLE_NAME))
+        print('latest:', latest_date, 'check latest:',
+              SQL_CHECK_LATEST.format(CHECK_FIELD_NAME_1, TABLE_NAME))
         print('amt:', SQL_COUNT_AMOUNT, 'amount:', amount_sub)
-        print('table cate:', TABLE_CATEGORY, 'table:', TABLE_NAME, 'max:', max_sub, 'min:', min_sub, 'status:', status)
+        print('table cate:', TABLE_CATEGORY, 'table:', TABLE_NAME,
+              'max:', max_sub, 'min:', min_sub, 'status:', status)
 
         # Append data to the containers
         DAY_ID_DATA.append(currentTime.strftime(DATE_FORMAT))
@@ -103,15 +116,20 @@ data_to_process_log_table = pd.DataFrame({
 })
 
 # Insert data to the database table
-data_to_process_log_table.to_sql(name=INSERT_TABLE, con=engine, index=False, if_exists='append')
+data_to_process_log_table.to_sql(
+    name=INSERT_TABLE, con=engine, index=False, if_exists='append')
 
 # Save data to a CSV file
 data_to_process_log_table.to_csv('./{}_{}_{}.csv'.format(INSERT_TABLE, datetime.now().strftime(DATE_FORMAT), round_job),
-                                 index=False, sep="|",header=None)
+                                 index=False, sep="|", header=None)
 
 # Commented out section. Check if it's required, otherwise it can be removed.
-# isDir = os.path.isdir(path)
-# if(not isDir):
-#    os.mkdir(path)
+try:
+    isDir = os.path.isdir(CSV_PATH)
+    if (not isDir):
+        os.mkdir(CSV_PATH)
+    
+except FileExistsError:
+    print(" File or Dir error")
 
 sys.exit(0)
