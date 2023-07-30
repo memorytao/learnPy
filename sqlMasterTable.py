@@ -128,28 +128,30 @@ def get_file_creation_date(file_name):
         return datetime.datetime.strptime(date_str, "%Y%m%d").date()
     return None
 
+
 def remove_csv_files(directory):
-    # Get the current date
-    current_date = datetime.date.today()
-
-    # List all files in the directory
-    files = os.listdir(directory)
-
-    # Filter and remove CSV files older than 7 days
-    for file_name in files:
-        if file_name.lower().endswith(".csv"):
-            creation_date = get_file_creation_date(file_name)
-            if creation_date:
-                file_age = (current_date - creation_date).days
-                if file_age > 7:
-                    file_path = os.path.join(directory, file_name)
-                    os.remove(file_path)
-                    print("Removed ",file_name)
-
-# create form daily insert to CVM_CMPGN_MASTER_PROCESS_LOG
+    try:
+        # Get the current date
+        current_date = datetime.date.today()
+        # List all files in the directory
+        files = os.listdir(directory)
+        # Filter and remove CSV files older than 7 days
+        for file_name in files:
+            if file_name.lower().endswith(".csv"):
+                creation_date = get_file_creation_date(file_name)
+                if creation_date:
+                    file_age = (current_date - creation_date).days
+                    if file_age > 7:
+                        file_path = os.path.join(directory, file_name)
+                        os.remove(file_path)
+                        # print("Removed ", file_name)
+                        logging.info(" remove.... ", file_name)
+    except Exception as err:
+        print('Error while remove file', type(err), err)
 
 
 def create_report_form(schema_name, table_name, table_description, sla_data, latest_date, amount_sub, status):
+    # create form daily insert to CVM_CMPGN_MASTER_PROCESS_LOG
     try:
         current_time_yyyymmdd = datetime.now().strftime(FORMAT_YYYYMMDD)
         create_datetime = datetime.now().strftime(FORMAT_YYYYMMDD_HHMMSS)
@@ -180,7 +182,7 @@ def check_latest_updated(check_field_name_1, table_name):
         res = {
             'status': '',
             'amount': 0,
-            'latest_date':''
+            'latest_date': ''
         }
         SQL_CHECK_LATEST = """SELECT to_char(MAX(DATE({})),'YYYYMMDD') AS LOADDATE FROM {} ;"""
 
@@ -250,10 +252,11 @@ with get_connection() as cursor:
                 # Skip the FCT_INVC_PROD table
                 continue
 
-            res = check_latest_updated(check_field_name_1=CHECK_FIELD_NAME_1, table_name=TABLE_NAME)
+            res = check_latest_updated(
+                check_field_name_1=CHECK_FIELD_NAME_1, table_name=TABLE_NAME)
 
             create_report_form(schema_name=SCHEMA_NAME, table_name=TABLE_NAME, table_description=TABLE_DESC_DATA,
-                               sla_data=SLA_DATA, latest_date=res['latest_date'], 
+                               sla_data=SLA_DATA, latest_date=res['latest_date'],
                                amount_sub=res['amount'], status=res['status'])
 
             # remove_csv_files(TARGET_DIRECTORY)
