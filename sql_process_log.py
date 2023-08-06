@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """
     This script will exucute every single day at 9,12,15 for each day to sent report
+
 """
 import os
 import sys
@@ -50,8 +51,6 @@ INSERT_TABLE = "CVM_CMPGN_MASTER_PROCESS_LOG"
 LOG_NAME = 'cvm_cmpgn_master_process_log.log'
 LOG_FORMATTER = '%(asctime)s:%(levelname)s:%(message)s'
 
-CONN = None
-
 logging.disable(logging.DEBUG)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -59,6 +58,15 @@ logger.setLevel(logging.INFO)
 file_handler = logging.FileHandler(f'{LOG_PATH}{LOG_NAME}')
 file_handler.setFormatter(logging.Formatter(LOG_FORMATTER))
 logger.addHandler(file_handler)
+
+
+def check_dir(path):
+    """ Prepare directory to log file and CSV file """
+    if not os.path.exists(path):
+        try:
+            os.makedirs(path)
+        except OSError as err:
+            logger.error('error create directory %s', str(err))
 
 
 def get_connection():
@@ -269,17 +277,14 @@ def check_latest_updated(master_table, cursor):
         }
 
         latest_date = check_latest_date_table(master_table, cursor)
-
-        amount_subs = get_amount_subs(
-            latest_date, master_table['TABLE_NAME'], master_table['TABLE_CATEGORY'],
+        amount_subs = get_amount_subs(latest_date, master_table['TABLE_NAME'], master_table['TABLE_CATEGORY'],
             master_table['CHECK_FIELD_NAME_1'], cursor)
 
         min_sub = int(master_table['MIN_DATA_THRESHOLD'])
         max_sub = int(master_table['MAX_DATA_THRESHOLD'])
 
         current_time = datetime.strptime(CURRENT_DATE, FORMAT_YYYYMMDD)
-        status = check_status(current_time, latest_date,
-                              amount_subs, min_sub, max_sub)
+        status = check_status(current_time, latest_date,amount_subs, min_sub, max_sub)
         latest_update['amount'] = amount_subs
         latest_update['latest_date'] = latest_date
         latest_date['status'] = status
@@ -292,8 +297,9 @@ def check_latest_updated(master_table, cursor):
 
 
 def create_process_log():
-
-    with CONN.cursor() as cursor:
+    """   """
+    conn = get_connection()
+    with conn.cursor() as cursor:
         logger.info(
             'JOB CVM_CMPGN_MASTER_PROCESS_LOG STARTED ROUND %s ', ROUND_JOB)
         cursor.execute(SQL_CMPGN_MASTER_TABLE)
@@ -323,22 +329,22 @@ def create_process_log():
             }
 
             try:
-                latest_updated = check_latest_updated(
-                    master_table, cursor=cursor)
+                latest_updated = check_latest_updated(master_table, cursor)
                 insert_data = create_report_form(master_table, latest_updated)
-                insert_to_process_log(insert_data, cursor=cursor)
+                insert_to_process_log(insert_data, cursor)
 
             except SystemError as err:
                 logger.error('Error occurred while processing table : %s detail: %s',
                              master_table['TABLE_NAME'], str(err))
                 continue
 
-    CONN.close()
+    conn.close()
     logger.info('JOB CVM_CMPGN_MASTER_PROCESS_LOG ROUND %s DONE! ', ROUND_JOB)
 
 
 if __name__ == '__main__':
-    CONN = get_connection()
+    check_dir(CSV_PATH)
+    check_dir(LOG_PATH)
     create_process_log()
     create_csv()
     send_mail()
