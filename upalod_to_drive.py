@@ -1,3 +1,5 @@
+# pip install google-auth google-auth-oauthlib google-api-python-client
+
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
