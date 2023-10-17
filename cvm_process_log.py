@@ -8,6 +8,7 @@ import sys
 import re
 import logging
 from datetime import datetime
+from datetime import timedelta
 import nzpy as nz
 import pandas as pd
 
@@ -43,7 +44,7 @@ SQL_CMPGN_MASTER_TABLE = """SELECT SCHEMA_NAME,TABLE_NAME,TABLE_DESCRIPTION,TABL
             TABLE_CATEGORY,SLA_DATA, SLA_TIME,MIN_DATA_THRESHOLD,
             MAX_DATA_THRESHOLD,CHECK_FIELD_NAME_1,DATA_TYPE,CHECK_FIELD_NAME_2,
             CHECK_FIELD_NAME_3,CHECK_FIELD_NAME_4,UPDATE_DTTM,UPDATE_BY
-            FROM CVM_CMPGN_MASTER_TABLE
+            FROM CVM_CMPGN_MASTER_TABLE 
         """
 
 INSERT_TABLE = "CVM_CMPGN_MASTER_PROCESS_LOG"
@@ -54,10 +55,12 @@ LOG_FORMATTER = '%(asctime)s:%(levelname)s:%(message)s'
 logging.disable(logging.DEBUG)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-# file_handler = logging.FileHandler('{}{}'.format(LOG_PATH, LOG_NAME))
-file_handler = logging.FileHandler(f'{LOG_PATH}{LOG_NAME}')
-file_handler.setFormatter(logging.Formatter(LOG_FORMATTER))
-logger.addHandler(file_handler)
+
+
+def config_log():
+    file_handler = logging.FileHandler(f'{LOG_PATH}{LOG_NAME}')
+    file_handler.setFormatter(logging.Formatter(LOG_FORMATTER))
+    logger.addHandler(file_handler)
 
 
 def check_dir(path):
@@ -66,7 +69,7 @@ def check_dir(path):
         try:
             os.makedirs(path)
         except OSError as err:
-            logger.error('error create directory %s', str(err))
+            logger.error('ERROR CREATE DIRECTORY %s', str(err))
 
 
 def get_connection():
@@ -80,29 +83,25 @@ def get_connection():
 
         conn = nz.connect(user=user_name, password=password,
                           host=host, port=port, database=database)
-        logger.info('connected to database')
+
+        logger.info('CONNECTED TO DATABASE')
         return conn
     except ConnectionError as err:
-        logger.error('error to connect the database %s', str(err))
+        logger.error('ERROR TO CONNECT THE DATABASE %s', str(err))
 
 
 def insert_to_process_log(insert_data, cursor):
     """ Insert to database """
     try:
-        # cursor.execute("insert into {} values (?,?,?,?,?,?,?,?)".format(INSERT_TABLE),
-        #                (insert_data['CURRENT_DATE'], ROUND_JOB, insert_data['SCHEMA_NAME'], insert_data['TABLE_NAME'],
-        #                 insert_data['LATEST_DATE'], insert_data['AMOUNT'], insert_data['STATUS'], insert_data['CREATE_DT']))
 
         cursor.execute(f"insert into {INSERT_TABLE} values (?,?,?,?,?,?,?,?)",
                        (insert_data['CURRENT_DATE'], ROUND_JOB, insert_data['SCHEMA_NAME'], insert_data['TABLE_NAME'],
                         insert_data['LATEST_DATE'], insert_data['AMOUNT'], insert_data['STATUS'], insert_data['CREATE_DT']))
 
-        # msg = 'inserted {} to CVM_CMPGN_MASTER_PROCESS_LOG success '.format(
-        #     insert_data['TABLE_NAME'])
-        logger.info('inserted %s to CVM_CMPGN_MASTER_PROCESS_LOG success',
+        logger.info('INSERTED %s TO CVM_CMPGN_MASTER_PROCESS_LOG SUCCESS',
                     insert_data['TABLE_NAME'])
-    except ConnectionAbortedError as err:
-        logger.error('error occurred during insertion %s', str(err))
+    except Exception as err:
+        logger.error('ERROR OCCURRED DURING INSERTION %s', str(err))
 
 
 def create_csv():
@@ -121,33 +120,32 @@ def create_csv():
             'STATUS': STATUS_DATA,
             'CREATE_DTTM': CREATE_DTTM_DATA,
         })
-
+        data_to_process_log_table = data_to_process_log_table.sort_values(
+            by="TABLE_NAME", ascending=True)
         # Save data to a CSV file
         os.chdir(CSV_PATH)
         create_date = datetime.now().strftime(FORMAT_YYYYMMDD)
-        # file_name = '{}_{}_{}.csv'.format(
-        #     INSERT_TABLE, create_date, ROUND_JOB)
         file_name = f"{INSERT_TABLE}_{create_date}_{ROUND_JOB}.csv"
         data_to_process_log_table.to_csv(
             file_name, index=False, sep="|", header=None)
-
-        logger.info('CSV created successfully : %s', file_name)
+        logger.info('CSV CREATED SUCCESS : %s', file_name)
+        # send_mail(file_name)
     except EOFError as err:
-        logger.error('create csv error %s', str(err))
+        logger.error('CREATE CSV ERROR %s', str(err))
 
 
-def send_mail():
+def send_mail(file_name):
     """ Commented out section. Check if it's required, otherwise it can be removed. """
     try:
         is_dir = os.path.isdir(CSV_PATH)
         if not is_dir:
             os.mkdir(CSV_PATH)
-            cmd = "(sh /data/CVM/monitor/script/mail_cmpgn_process_log.sh.sh) & "
+            cmd = f"(sh /data/CVM/monitor/script/mail_cmpgn_process_log.sh.sh {file_name}) & "
             os.system(cmd)
-        logging.info('email has sent! ')
+        logging.info('EMAIL HAS SENT! ')
 
     except FileNotFoundError as err:
-        logger.error("error to sending email %s", str(err))
+        logger.error("ERROR TO SENDING EMAIL %s", str(err))
     sys.exit(0)
 
 
@@ -164,7 +162,7 @@ def remove_csv_files(directory):
     """ Files will removed after 7 days """
     try:
         # Get the current date
-        current_date = datetime.date.today()
+        current_date = datetime.date(datetime.today())
         # List all files in the directory
         files = os.listdir(directory)
         # Filter and remove CSV files older than 7 days
@@ -176,8 +174,8 @@ def remove_csv_files(directory):
                     if file_age > 7:
                         file_path = os.path.join(directory, file_name)
                         os.remove(file_path)
-    except FileNotFoundError as err:
-        logger.error('Error while removing file %s', str(err))
+    except (Exception, FileNotFoundError) as err:
+        logger.error('ERROR WHILE REMOVING FILE %s', str(err))
 
 
 def create_report_form(master_table, latest_updated):
@@ -196,7 +194,7 @@ def create_report_form(master_table, latest_updated):
         CREATE_DTTM_DATA.append(create_datetime)
 
         insert_data = {
-            'CURRENT_TIME': CURRENT_DATE,
+            'CURRENT_DATE': CURRENT_DATE,
             'SCHEMA_NAME': master_table['SCHEMA_NAME'],
             'TABLE_NAME': master_table['TABLE_NAME'],
             'LATEST_DATE': latest_updated['latest_date'],
@@ -205,64 +203,68 @@ def create_report_form(master_table, latest_updated):
             'CREATE_DT': create_datetime
         }
         return insert_data
-    except ValueError as err:
-        logger.error('create_report_form %s', str(err))
+    except (ValueError, Exception) as err:
+        logger.error('CREATE_REPORT_FORM %s', str(err))
 
 
 def check_latest_date_table(master_table, cursor):
     """ """
     try:
-        logger.info('checking latest date from %s ',
+        logger.info('CHECKING LATEST DATE FROM %s ',
                     master_table['TABLE_NAME'])
-
-        # sql_check_latest = "SELECT to_char(MAX(DATE({})),'YYYYMMDD') AS LOADDATE FROM {} ".format(
-        #     master_table['CHECK_FIELD_NAME_1'], master_table['TABLE_NAME'])
-
-        sql_check_latest = f"SELECT to_char(MAX(DATE({ master_table['CHECK_FIELD_NAME_1']})),'YYYYMMDD') AS LOADDATE FROM {master_table['TABLE_NAME']} "
-        logger.info('sql => %s', sql_check_latest)
+        
+        if master_table['TABLE_NAME'] == 'CVM_HOUSE_HOLD_IDCARD_ADDR':
+            sql_check_latest = f"SELECT to_char(MAX(DATE({ master_table['CHECK_FIELD_NAME_1']})),'YYYYMM') AS LOADDATE FROM {master_table['TABLE_NAME']} "
+        else:
+            sql_check_latest = f"SELECT to_char(MAX(DATE({ master_table['CHECK_FIELD_NAME_1']})),'YYYYMMDD') AS LOADDATE FROM {master_table['TABLE_NAME']} "
+        logger.info('SQL => %s', sql_check_latest)
         # eg. value from db is [(20231230)]
         db_latest_time = cursor.execute(sql_check_latest)
 
         return db_latest_time.fetchall()[0][0]
     except TypeError as err:
-        logger.error('check_latest_date_table %s', str(err))
+        logger.error('CHECK_LATEST_DATE_TABLE %s', str(err))
 
 
 def get_amount_subs(latest_date, table_name, table_category, check_field, cursor):
     """ To count number of subscription by date """
     try:
         latest_update_date = datetime.strptime(latest_date, FORMAT_YYYYMMDD)
-        # sql_count_amount = 'SELECT COUNT(1) FROM {} '.format(table_name)
 
         sql_count_amount = f"SELECT COUNT(1) FROM {table_name} "
         if table_category == "TRANSACTION":
-            # sql_count_amount += "WHERE to_char(DATE({}),'YYYYMMDD') = '{}' ".format(
-            #     check_field, latest_update_date.strftime(FORMAT_YYYYMMDD))
             last_date = latest_update_date.strftime(FORMAT_YYYYMMDD)
             sql_count_amount += f"WHERE to_char(DATE({check_field}),'YYYYMMDD') = '{last_date}' "
 
-        logger.info('sql => %s', sql_count_amount)
+        logger.info('SQL => %s', sql_count_amount)
         db_amount = cursor.execute(sql_count_amount)
         # eg. value from db is [(70000)]
         amount_sub = int(db_amount.fetchall()[0][0])
 
         return amount_sub
     except TypeError as err:
-        logger.error('get_amount_subs %s ', str(err))
+        logger.error('GET_AMOUNT_SUBS %s ', str(err))
     return None
 
 
-def check_status(current_time, latest_update_date, amount_sub, min_sub, max_sub):
-    """ check status (Normal,Delay,AbNormal) """
+def check_status(current_time, latest_update_date, amount_sub, min_sub, max_sub, sla_data):
+    """ check status (Normal,Delay,Abnormal) """
 
     status = ''
-
-    if current_time == latest_update_date and (amount_sub >= min_sub and amount_sub <= max_sub):
-        status = "Normal"
-    elif current_time > latest_update_date:
-        status = "Delay"
+    sla_time = int(sla_data[2])-1
+    latest_update_date+=timedelta(days=sla_time)
+    
+    if current_time != latest_update_date:
+        status = "Above Threshold" if amount_sub > max_sub else "Below Threshold" if amount_sub < min_sub else "Normal"
     else:
-        status = "AbNormal"
+        if current_time == latest_update_date and (amount_sub >= min_sub and amount_sub <= max_sub):
+            status = "Normal"
+        elif current_time > latest_update_date:
+            status = "Delay"
+        else:
+            status = "Abnormal"
+
+    logger.info(f"Max:{max_sub}, Min:{min_sub}, Amt:{amount_sub}, Status:{status}, Current:{current_time}, Latest:{latest_update_date} ")
     return status
 
 
@@ -278,20 +280,25 @@ def check_latest_updated(master_table, cursor):
 
         latest_date = check_latest_date_table(master_table, cursor)
         amount_subs = get_amount_subs(latest_date, master_table['TABLE_NAME'], master_table['TABLE_CATEGORY'],
-            master_table['CHECK_FIELD_NAME_1'], cursor)
+                                      master_table['CHECK_FIELD_NAME_1'], cursor)
 
         min_sub = int(master_table['MIN_DATA_THRESHOLD'])
         max_sub = int(master_table['MAX_DATA_THRESHOLD'])
 
         current_time = datetime.strptime(CURRENT_DATE, FORMAT_YYYYMMDD)
-        status = check_status(current_time, latest_date,amount_subs, min_sub, max_sub)
+        latest_date_dt = datetime.strptime(latest_date, FORMAT_YYYYMMDD)
+        status = check_status(current_time, latest_date_dt,
+                              amount_subs, min_sub, max_sub, master_table['SLA_DATA'])
+
+        latest_date_dt = latest_date_dt + timedelta(days=-1)
         latest_update['amount'] = amount_subs
-        latest_update['latest_date'] = latest_date
-        latest_date['status'] = status
+        latest_update['latest_date'] = datetime.strftime(
+            latest_date_dt, FORMAT_YYYYMMDD)
+        latest_update['status'] = status
 
         return latest_update
     except ValueError as err:
-        logger.error('Table: %s  check latest updated error %s',
+        logger.error('TABLE: %s  CHECK LATEST UPDATED ERROR %s',
                      master_table['TABLE_NAME'], str(err))
     return None
 
@@ -301,13 +308,13 @@ def create_process_log():
     conn = get_connection()
     with conn.cursor() as cursor:
         logger.info(
-            'JOB CVM_CMPGN_MASTER_PROCESS_LOG STARTED ROUND %s ', ROUND_JOB)
+            'STARTING JOB CVM_CMPGN_MASTER_PROCESS_LOG STARTED ROUND %s ', ROUND_JOB)
         cursor.execute(SQL_CMPGN_MASTER_TABLE)
         cvm_campaign_from_sql = cursor.fetchall()
         cvm_master_data = pd.DataFrame(
             cvm_campaign_from_sql, columns=LIST_SELECTED_COLUMN)
 
-        for master in cvm_master_data.iterrows():
+        for idx, master in cvm_master_data.iterrows():
 
             master_table = {
                 'SCHEMA_NAME': master['SCHEMA_NAME'],
@@ -333,8 +340,8 @@ def create_process_log():
                 insert_data = create_report_form(master_table, latest_updated)
                 insert_to_process_log(insert_data, cursor)
 
-            except SystemError as err:
-                logger.error('Error occurred while processing table : %s detail: %s',
+            except (Exception, KeyboardInterrupt) as err:
+                logger.error('ERROR OCCURRED WHILE PROCESSING TABLE : %s DETAIL: %s',
                              master_table['TABLE_NAME'], str(err))
                 continue
 
@@ -343,8 +350,9 @@ def create_process_log():
 
 
 if __name__ == '__main__':
+    config_log()
     check_dir(CSV_PATH)
     check_dir(LOG_PATH)
     create_process_log()
     create_csv()
-    send_mail()
+    # remove_csv_files(CSV_PATH)
