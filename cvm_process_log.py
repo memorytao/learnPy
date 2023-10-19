@@ -16,6 +16,10 @@ import pandas as pd
 LOG_PATH = "/data/CVM/table_monitoring/scripts/log/"
 CSV_PATH = "/data/CVM/table_monitoring/scripts/report/"
 TMP_PATH = ""
+
+FORMAT_YYYYMM = "%Y-%m"
+FORMAT_YYYY_MM_DD = "%Y-%m-%d"
+
 FORMAT_YYYYMMDD = "%Y%m%d"
 FORMAT_YYYYMMDD_HHMMSS = "%Y/%m/%d %H:%M:%S"
 CURRENT_DATE = datetime.strftime(datetime.now(), FORMAT_YYYYMMDD)
@@ -44,7 +48,8 @@ SQL_CMPGN_MASTER_TABLE = """SELECT SCHEMA_NAME,TABLE_NAME,TABLE_DESCRIPTION,TABL
             TABLE_CATEGORY,SLA_DATA, SLA_TIME,MIN_DATA_THRESHOLD,
             MAX_DATA_THRESHOLD,CHECK_FIELD_NAME_1,DATA_TYPE,CHECK_FIELD_NAME_2,
             CHECK_FIELD_NAME_3,CHECK_FIELD_NAME_4,UPDATE_DTTM,UPDATE_BY
-            FROM CVM_CMPGN_MASTER_TABLE 
+            FROM CVM_CMPGN_MASTER_TABLE
+            -- WHERE TABLE_NAME = 'CVM_HOUSE_HOLD_IDCARD_ADDR'
         """
 
 INSERT_TABLE = "CVM_CMPGN_MASTER_PROCESS_LOG"
@@ -212,15 +217,14 @@ def check_latest_date_table(master_table, cursor):
     try:
         logger.info('CHECKING LATEST DATE FROM %s ',
                     master_table['TABLE_NAME'])
-        
+
         if master_table['TABLE_NAME'] == 'CVM_HOUSE_HOLD_IDCARD_ADDR':
-            sql_check_latest = f"SELECT to_char(MAX(DATE({ master_table['CHECK_FIELD_NAME_1']})),'YYYYMM') AS LOADDATE FROM {master_table['TABLE_NAME']} "
+            sql_check_latest = f"SELECT to_char(MAX(to_date({ master_table['CHECK_FIELD_NAME_1']},'YYYYMM')),'YYYYMMDD') AS LOADDATE FROM {master_table['TABLE_NAME']} "
         else:
             sql_check_latest = f"SELECT to_char(MAX(DATE({ master_table['CHECK_FIELD_NAME_1']})),'YYYYMMDD') AS LOADDATE FROM {master_table['TABLE_NAME']} "
         logger.info('SQL => %s', sql_check_latest)
         # eg. value from db is [(20231230)]
         db_latest_time = cursor.execute(sql_check_latest)
-
         return db_latest_time.fetchall()[0][0]
     except TypeError as err:
         logger.error('CHECK_LATEST_DATE_TABLE %s', str(err))
@@ -250,21 +254,33 @@ def get_amount_subs(latest_date, table_name, table_category, check_field, cursor
 def check_status(current_time, latest_update_date, amount_sub, min_sub, max_sub, sla_data):
     """ check status (Normal,Delay,Abnormal) """
 
-    status = ''
-    sla_time = int(sla_data[2])-1
-    latest_update_date+=timedelta(days=sla_time)
-    
-    if current_time != latest_update_date:
-        status = "Above Threshold" if amount_sub > max_sub else "Below Threshold" if amount_sub < min_sub else "Normal"
-    else:
-        if current_time == latest_update_date and (amount_sub >= min_sub and amount_sub <= max_sub):
-            status = "Normal"
-        elif current_time > latest_update_date:
-            status = "Delay"
-        else:
-            status = "Abnormal"
+    try:
+        status = 'Delay'
+        sla_time = 0
 
-    logger.info(f"Max:{max_sub}, Min:{min_sub}, Amt:{amount_sub}, Status:{status}, Current:{current_time}, Latest:{latest_update_date} ")
+        if sla_data == 'Monthly':
+            lastest_update = datetime.strftime(
+                latest_update_date, FORMAT_YYYYMM)
+            latest_month = int(lastest_update.split("-")[1])
+            latest_year = int(lastest_update.split("-")[0])
+
+            current = datetime.strftime(current_time, FORMAT_YYYYMM)
+            curr_year = int(current.split('-')[0])
+            curr_month = int(current.split('-')[1])
+
+            if (curr_year == latest_year and (curr_month-1) == latest_month) or (curr_year-1 == latest_year and latest_month == 12):  # not delay
+                status = "Above Threshold" if amount_sub > max_sub else "Below Threshold" if amount_sub < min_sub else "Normal"
+        else:
+            sla_time = int(sla_data[2])-1
+            latest_update_date += timedelta(days=sla_time)
+
+            if current_time == latest_update_date:
+                status = "Above Threshold" if amount_sub > max_sub else "Below Threshold" if amount_sub < min_sub else "Normal"
+
+        logger.info(
+            f"Max:{max_sub}, Min:{min_sub}, Amt:{amount_sub}, Status:{status} ")
+    except Exception as err:
+        logger.error('Check status %s ', str(err))
     return status
 
 
@@ -290,7 +306,9 @@ def check_latest_updated(master_table, cursor):
         status = check_status(current_time, latest_date_dt,
                               amount_subs, min_sub, max_sub, master_table['SLA_DATA'])
 
-        latest_date_dt = latest_date_dt + timedelta(days=-1)
+        if master_table['SLA_DATA'] != 'Monthly':
+            latest_date_dt = latest_date_dt + timedelta(days=-1)
+
         latest_update['amount'] = amount_subs
         latest_update['latest_date'] = datetime.strftime(
             latest_date_dt, FORMAT_YYYYMMDD)
