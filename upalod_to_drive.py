@@ -12,7 +12,7 @@ drive_service = build('drive', 'v3', credentials=credentials)
 
 def upload_file(file_path, folder_id=None):
     file_metadata = {
-        'name': 'READMEs.md',  # Replace with the desired file name
+        'name': 'test.xlsx',  # Replace with the desired file name
         'parents': [folder_id] if folder_id else []
     }
 
@@ -24,4 +24,4 @@ def upload_file(file_path, folder_id=None):
     print(f'File ID: {file.get("id")}')
 
 # Example usage:
-upload_file('./README.md', folder_id='19MTjDhfJigonI-e9tBhuGDcODiJXTWht')
+upload_file('./test.xlsx', folder_id='')
