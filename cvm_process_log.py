@@ -71,10 +71,9 @@ def create_csv():
             'SORT': sort_by_type
         })
 
-        data_to_process_log_table = data_to_process_log_table.sort_values(
-            by=["SORT","TABLE_NAME"], ascending=True)
+        data_to_process_log_table = data_to_process_log_table.sort_values(by=["SORT","TABLE_NAME"], ascending=True)
         
-        data_to_process_log_table.drop(columns="SORT")
+        data_to_process_log_table.drop(columns="SORT",inplace=True)
 
         os.chdir(CSV_PATH)
         create_date = datetime.now().strftime(FULLDATE_FORMAT)
