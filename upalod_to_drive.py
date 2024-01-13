@@ -22,10 +22,10 @@ def highlight_status(value):
   else:
     return ""
 
-def convertCSVtoEexcel(file_name):
-  df = pd.read_csv(f"./{file_name}.csv",sep="|", usecols=[3,4,5,6,7,8], names=["TABLE NAME", "BUSINESS DESCRIPTION", "SLA Data", "Processed Date", "Records Amount" , "Status"])
+def convert_csv_to_excel(file_name):
+  df = pd.read_csv(f"./{file_name}",sep="|", usecols=[3,4,5,6,7,8], names=["TABLE NAME", "BUSINESS DESCRIPTION", "SLA Data", "Processed Date", "Records Amount" , "Status"])
   df_styled = df.style.applymap(highlight_status, subset=['Status'])
-  df_styled.to_excel("./color.xlsx", index=False)
+  df_styled.to_excel(f"./{file_name}".replace(".csv",".xlsx"), index=False)
 
 
 
@@ -35,7 +35,7 @@ def get_file():
         file_name = f"{INSERT_TABLE}_{create_date}_1.csv"
         copy_command = f"jpt_dtac_user10@172.20.23.22:/data/CVM/table_monitoring/scripts/report/{file_name}"
         subprocess.call(['scp',copy_command,'./'])
-        convertCSVtoEexcel(file_name)
+        convert_csv_to_excel(file_name)
         upload_file(file_name)
     except Exception as err :
         print( str(err) )
