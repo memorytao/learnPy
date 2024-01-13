@@ -1,6 +1,25 @@
 
 import nzpy as nz
-import cvm_log as logger
+
+SQL_CMPGN_MASTER_TABLE = """SELECT SCHEMA_NAME,TABLE_NAME,TABLE_DESCRIPTION,TABLE_SHORT_DESCRIPTION,
+            TABLE_CATEGORY,SLA_DATA, SLA_TIME,MIN_DATA_THRESHOLD,
+            MAX_DATA_THRESHOLD,CHECK_FIELD_NAME_1,DATA_TYPE,CHECK_FIELD_NAME_2,
+            CHECK_FIELD_NAME_3,CHECK_FIELD_NAME_4,UPDATE_DTTM,UPDATE_BY
+            FROM CVM_CMPGN_MASTER_TABLE 
+        """
+
+SQL_CMPGN_MASTER_TABLE_TEST = """SELECT SCHEMA_NAME,TABLE_NAME,TABLE_DESCRIPTION,TABLE_SHORT_DESCRIPTION,
+            TABLE_CATEGORY,SLA_DATA, SLA_TIME,MIN_DATA_THRESHOLD,
+            MAX_DATA_THRESHOLD,CHECK_FIELD_NAME_1,DATA_TYPE,CHECK_FIELD_NAME_2,
+            CHECK_FIELD_NAME_3,CHECK_FIELD_NAME_4,UPDATE_DTTM,UPDATE_BY
+            FROM CVM_CMPGN_MASTER_TABLE WHERE TABLE_NAME = 'DIM_TMN'
+        """
+
+LIST_SELECTED_COLUMN = ["SCHEMA_NAME", "TABLE_NAME", "TABLE_DESCRIPTION",
+                        "TABLE_SHORT_DESCRIPTION", "TABLE_CATEGORY", "SLA_DATA",
+                        "SLA_TIME", "MIN_DATA_THRESHOLD", "MAX_DATA_THRESHOLD",
+                        "CHECK_FIELD_NAME_1", "DATA_TYPE", "CHECK_FIELD_NAME_2",
+                        "CHECK_FIELD_NAME_3", "CHECK_FIELD_NAME_4", "UPDATE_DTTM", "UPDATE_BY"]
 
 def get_nzdatamart():
     """ Start connection """
@@ -14,7 +33,6 @@ def get_nzdatamart():
         conn = nz.connect(user=user_name, password=password,
                           host=host, port=port, database=database)
 
-        logger.info('CONNECTED TO DATABASE')
         return conn.cursor()
     except ConnectionError as err:
-        logger.error('ERROR TO CONNECT THE DATABASE %s', str(err))
+        raise('ERROR TO CONNECT THE DATABASE %s', str(err))

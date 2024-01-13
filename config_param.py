@@ -1,0 +1,1 @@
+DAYS_TO_REMOVE = 14
